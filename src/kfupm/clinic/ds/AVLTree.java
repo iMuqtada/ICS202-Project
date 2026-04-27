@@ -60,13 +60,41 @@ public class AVLTree<K extends Comparable<K>, V> {
         }
         return null;
     }
-    public void remove(K key) { throw new UnsupportedOperationException("TODO: AVLTree.remove"); }
-
+    public void remove(K key) { root = delete(root, key); }
+    private Node delete(Node n, K key) {
+        if (n == null) return null;
+        int c = key.compareTo(n.key);
+        if (c < 0) { n.left  = delete(n.left,  key); }
+        else if (c > 0) { n.right = delete(n.right, key); }
+        else {
+            if (n.left == null)  return n.right;
+            if (n.right == null) return n.left;
+            Node s = minNode(n.right);
+            n.key = s.key; n.value = s.value;
+            n.right = delete(n.right, s.key);
+        }
+        return balance(n);
+    }
+    private Node minNode(Node n) {
+        while (n.left != null) n = n.left; return n;
+    }
     /** In-order traversal (sorted by key). */
-    public void inOrder(BiConsumer<K, V> visitor) { throw new UnsupportedOperationException("TODO: AVLTree.inOrder"); }
+    public void inOrder(BiConsumer<K, V> visitor) { inOrder(root, visitor); }
+    private void inOrder(Node n, BiConsumer<K, V> visitor) {
+        if (n == null) return;
+        inOrder(n.left, visitor);
+        visitor.accept(n.key, n.value);
+        inOrder(n.right, visitor);
+    }
+
 
     /** Returns the smallest key/value (leftmost node), or null if empty. */
-    public Entry<K, V> minEntry() { throw new UnsupportedOperationException("TODO: AVLTree.minEntry"); }
+    public Entry<K, V> minEntry() {
+        if (root == null) return null;
+        Node m = minNode(root);
+        return new Entry<>(m.key, m.value);
+    }
 
     public record Entry<K, V>(K key, V value) {}
 }
+
