@@ -4,6 +4,31 @@ import java.util.List;
 
 /** Students implement. */
 public class SinglyLinkedList<T> {
-    public void addLast(T item) { throw new UnsupportedOperationException("TODO: SinglyLinkedList.addLast"); }
+    private class Node{
+        T data;
+        Node next;
+
+        Node(T data){
+            this.data = data;
+            this.next = null;
+        }
+    }
+    private Node head;
+    private Node tail;
+
+    public SinglyLinkedList(){
+        head = null;
+        tail = null;
+    }
+    public void addLast(T item) {
+        Node newNode = new Node(item);
+
+        if (head == null){
+            head = tail = newNode;
+        }else {
+            tail.next = newNode;
+            tail = newNode;
+        }
+    }
     public List<T> toList() { throw new UnsupportedOperationException("TODO: SinglyLinkedList.toList"); }
 }
