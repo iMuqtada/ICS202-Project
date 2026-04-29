@@ -46,7 +46,25 @@ public class ClinicServiceImpl implements ClinicService {
     @Override
     public Result<Void> addPatient(String id, String name, String phone) {
         // TODO: validate, check duplicates using hash table, insert, record undo
-        throw new UnsupportedOperationException("TODO: ClinicServiceImpl.addPatient");
+        // check all variables are there
+        if (id == null){
+            return Result.fail("Patient ID is required");
+        }
+        if (name == null){
+            return Result.fail("Patient name is required");
+        }
+        if (phone == null){
+            return Result.fail("Patient phone is required");
+        }
+        Patient existing = patientsById.get(id);
+
+        if (existing != null){
+            return Result.fail("Patient already exists")
+        }
+        Patient patient = new Patient(id, name, phone);
+        patientsById.put(id, patient);
+
+        return Result.ok(null, "Patient added")
     }
 
     @Override
