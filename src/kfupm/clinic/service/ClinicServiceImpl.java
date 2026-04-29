@@ -70,13 +70,31 @@ public class ClinicServiceImpl implements ClinicService {
     @Override
     public Result<Patient> findPatient(String id) {
         // TODO: use hash table get
-        throw new UnsupportedOperationException("TODO: ClinicServiceImpl.findPatient");
+        if (id == null){
+            return Result.fail("Patient ID is required");
+        }
+
+        Patient patient = patientsById.get(id);
+
+        if (patient == null){
+            return Result.fail("Patient not found");
+        }
+
+        return Result.ok(patient, "Patient found")
     }
 
     @Override
     public Result<Void> deletePatient(String id) {
         // TODO: remove from hash table, record undo
-        throw new UnsupportedOperationException("TODO: ClinicServiceImpl.deletePatient");
+        if (id == null){
+            return Result.fail("Patient ID is required");
+        }
+        Patient removed = patientsById.remove(id);
+
+        if (removed == null){
+            return Result.fail("Patient not found");
+        }
+        return Result.ok(null, "Patient deleted")
     }
 
     @Override
