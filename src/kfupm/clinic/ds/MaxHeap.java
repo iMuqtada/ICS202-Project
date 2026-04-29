@@ -56,7 +56,14 @@ public class MaxHeap<T> {
     }
 
     /** Non-destructive view for printing. */
-    public List<T> toListSnapshot() { throw new UnsupportedOperationException("TODO: MaxHeap.toListSnapshot"); }
+    public List<T> toListSnapshot() {
+        List<T> list = new ArrayList<>();
+
+        for (int i = 0; i < size; i++){
+            list.add((T) heap[i]);
+        }
+        return list;
+    }
 
     private void ensureCapacity(){
         if (size < heap.length){return;}
