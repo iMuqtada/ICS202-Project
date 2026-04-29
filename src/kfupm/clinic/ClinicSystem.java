@@ -59,8 +59,10 @@ public class ClinicSystem {
         return (m == null || m.isBlank()) ? t.getClass().getSimpleName() : m;
     }
 
+    @SuppressWarnings("unused")
     private static void printData(Object data) {
-        if (data instanceof List<?> list) {
+        if (data instanceof List<?>) {
+            List<?> list = (List<?>) data;
             if (list.isEmpty()) {
                 System.out.println("(empty)");
                 return;
