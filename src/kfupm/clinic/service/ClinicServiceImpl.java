@@ -64,7 +64,7 @@ public class ClinicServiceImpl implements ClinicService {
         Patient patient = new Patient(id, name, phone);
         patientsById.put(id, patient);
 
-        return Result.ok(null, "Patient added")
+        return Result.ok(null, "Patient added");
     }
 
     @Override
@@ -80,7 +80,7 @@ public class ClinicServiceImpl implements ClinicService {
             return Result.fail("Patient not found");
         }
 
-        return Result.ok(patient, "Patient found")
+        return Result.ok(patient, "Patient found");
     }
 
     @Override
@@ -94,25 +94,85 @@ public class ClinicServiceImpl implements ClinicService {
         if (removed == null){
             return Result.fail("Patient not found");
         }
-        return Result.ok(null, "Patient deleted")
+        return Result.ok(null, "Patient deleted");
     }
 
     @Override
     public Result<String> addAppointment(String patientId, LocalDate date, LocalTime time, String doctor) {
         // TODO: ensure patient exists; create appointmentId; insert into AVL + hash; record undo
-        throw new UnsupportedOperationException("TODO: ClinicServiceImpl.addAppointment");
+        if(patientId == null){
+            return Result.fail("Patient ID is required.");
+        }
+        if(date == null){
+            return Result.fail("Date is required.");
+        }
+        if(time == null){
+            return Result.fail("Time is required.");
+        }
+        if(doctor == null){
+            return Result.fail("Doctor name is required.");
+        }
+        Patient patient = patientsById.get(patientId);
+
+        if (patient == null){
+            return Result.fail("Patient not found");
+        }
+
+        String appointmentId = newAppointmentId();
+
+        Appointment appointment = new Appointment(
+            appointmentId,
+            patient.id(),
+            date,
+            time,
+            doctor
+        );
+
+        AppointmentKey key = new AppointmentKey(date, time, appointmentId);
+
+        apptsById.put(appointmentId, appointment);
+        apptsByTime.put(key, appointment);
+
+        return Result.ok(appointmentId, "Appointment added");
     }
 
     @Override
     public Result<Void> cancelAppointment(String appointmentId) {
         // TODO: use hash to find appt; remove from AVL + hash; record undo
-        throw new UnsupportedOperationException("TODO: ClinicServiceImpl.cancelAppointment");
+        if(appointmentId == null){
+            return Result.fail("Appointment ID is required");
+        }
+         Appointment appt = apptsById.get(appointmentId);
+
+        if (appt == null){
+            return Result.fail("Appointment not found.");
+        }
+
+        apptsById.remove(appointmentId);
+
+        AppointmentKey key = new AppointmentKey(
+            appt.date(),
+            appt.time(),
+            appt.id()
+        );
+
+        apptsByTime.remove(key);
+
+        return Result.ok(null, "Appointment cancelled");
     }
 
     @Override
     public Result<Appointment> findAppointment(String appointmentId) {
         // TODO: use hash table
-        throw new UnsupportedOperationException("TODO: ClinicServiceImpl.findAppointment");
+        if (appointmentId == null){
+            return Result.fail("Appointment ID is required");
+        }
+        Appointment appt = apptsById.get(appointmentId);
+
+        if (appt == null){
+            return Result.fail("Appointment not found");
+        }
+        return Result.ok(appt, "Appointment found");
     }
 
     @Override
@@ -130,7 +190,18 @@ public class ClinicServiceImpl implements ClinicService {
     @Override
     public Result<Void> addWalkIn(String patientId) {
         // TODO: ensure patient exists; enqueue; record undo
-        throw new UnsupportedOperationException("TODO: ClinicServiceImpl.addWalkIn");
+        if (patientId == null){
+            return Result.fail("Patient ID is not found");
+        }
+        Patient patient = patientsById.get(patientId);
+
+        if (patient == null){
+            return Result.fail("Patient not found");
+        }
+
+        walkIns.enqueue(patient);
+
+        return Result.ok(null, "Walk_in added");
     }
 
     @Override
