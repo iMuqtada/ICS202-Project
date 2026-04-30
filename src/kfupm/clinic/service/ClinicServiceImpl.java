@@ -123,6 +123,8 @@ public class ClinicServiceImpl implements ClinicService {
         Appointment appointment = new Appointment(
             appointmentId,
             patient.id(),
+            patient.name(),
+            patient.phone(),
             date,
             time,
             doctor
