@@ -337,18 +337,31 @@ public class ClinicServiceImpl implements ClinicService {
                 return Result.ok(action, "Undone: CANCEL_APPT " + appt.appointmentId() + " (restored)");
             }
             case ADD_WALKIN -> {
-                // Walk-in queue doesn't support arbitrary removal; we note limitation.
-                return Result.ok(action, "Undone: ADD_WALKIN (note: queue position may differ if others were added)");
+                Patient p = (Patient) action.payload();
+                walkIns.remove(p);
+                return Result.ok(action, "Undone: ADD_WALKIN " + p.id());
             }
             case ADD_URGENT -> {
-                // Similarly, heap doesn't support targeted remove by object.
-                return Result.ok(action, "Undone: ADD_URGENT (note: heap does not support targeted removal after other pushes)");
+                UrgentPatient up = (UrgentPatient) action.payload();
+                urgentHeap.remove(up);
+                return Result.ok(action, "Undone: ADD_URGENT " + up.patient().id());
             }
             case SERVE -> {
-                VisitLogEntry e = (VisitLogEntry) action.payload();
-                return Result.ok(action, "Undone: SERVE of " + e.patientName() + " [" + e.type() + "] (log entry remains for audit)");
-            }
-            default -> { return Result.fail("Unknown action type: " + action.type()); }
+                ServeUndoData data = (ServeUndoData) action.payload();
+
+                log.removeLast();
+
+                if (data.type().equals("URGENT")) {
+                        urgentHeap.push(data.urgentPatient());
+                } else if (data.type().equals("WALKIN")) {
+                         walkIns.enqueueFront(data.patient());
+                } else if (data.type().equals("APPOINTMENT")) {
+                         Appointment appt = data.appointment();
+                          apptsById.put(appt.appointmentId(), appt);
+                          apptsByTime.put(new AppointmentKey(appt.date(), appt.time(), appt.appointmentId()), appt);
+                 }
+
+                return Result.ok(action, "Undone: SERVE " + data.patient().id());
         }
     }
 
