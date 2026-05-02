@@ -231,7 +231,7 @@ public class ClinicServiceImpl implements ClinicService {
         if (p == null) return Result.fail("Patient '" + patientId + "' not found.");
         UrgentPatient up = new UrgentPatient(p, severity, System.currentTimeMillis());
         urgentHeap.push(up);
-        undoStack.push(new Action(ActionType.ADD_URGENT, up));
+        undo.push(new Action(ActionType.ADD_URGENT, up));
         return Result.ok(null, "Urgent patient added: " + p.name() + " (severity=" + severity + ")");
     }
 
@@ -278,7 +278,7 @@ public class ClinicServiceImpl implements ClinicService {
                 patient.id(), patient.name(),
                 type, doctor, note);
         log.addLast(entry);
-        undoStack.push(new Action(ActionType.SERVE, entry));
+        undo.push(new Action(ActionType.SERVE, entry));
         return Result.ok(entry, "Served: " + patient.name() + " [" + type + "]");
     }
 
@@ -302,8 +302,8 @@ public class ClinicServiceImpl implements ClinicService {
     @Override
     public Result<Action> undo() {
         // TODO: pop undo stack and reverse last action
-        if (undoStack.isEmpty()) return Result.fail("Nothing to undo.");
-        Action action = undoStack.pop();
+        if (undo.isEmpty()) return Result.fail("Nothing to undo.");
+        Action action = undo.pop();
 
         switch (action.type()) {
             case ADD_PATIENT -> {
