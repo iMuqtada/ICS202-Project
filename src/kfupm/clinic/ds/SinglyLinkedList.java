@@ -33,7 +33,7 @@ public class SinglyLinkedList<T> {
     }
     public List<T> toList() {
         List<T> list = new ArrayList<>();
-        for (Node<T> n = head; n != null; n = n.next) list.add(n.data);
+        for (Node n = head; n != null; n = n.next) list.add(n.data);
         return list;
     }
 }
