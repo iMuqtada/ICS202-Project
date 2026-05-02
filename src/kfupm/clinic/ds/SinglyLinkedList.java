@@ -1,6 +1,7 @@
 package kfupm.clinic.ds;
 
 import java.util.List;
+import java.util.ArrayList;
 
 /** Students implement. */
 public class SinglyLinkedList<T> {
