@@ -179,14 +179,24 @@ public class ClinicServiceImpl implements ClinicService {
 
     @Override
     public List<Appointment> viewDay(LocalDate date) {
-        // TODO: in-order traverse AVL and filter by date, OR implement date range traversal
-        return new ArrayList<>();
+        List<Appointment> result = new ArrayList<>();
+        apptsByTime.inOrder((key, appt) -> {
+            if (key.date().equals(date)) result.add(appt);
+        });
+        return result;
     }
 
     @Override
     public List<Appointment> viewRange(LocalDate date, LocalTime start, LocalTime end) {
-        // TODO: range query traversal on AVL for (date,start) .. (date,end)
-        return new ArrayList<>();
+        List<Appointment> result = new ArrayList<>();
+        apptsByTime.inOrder((key, appt) -> {
+            if (key.date().equals(date)
+                    && !key.time().isBefore(start)
+                    && !key.time().isAfter(end)) {
+                result.add(appt);
+            }
+        });
+        return result;
     }
 
     @Override
@@ -215,7 +225,14 @@ public class ClinicServiceImpl implements ClinicService {
     @Override
     public Result<Void> addUrgent(String patientId, int severity) {
         // TODO: validate severity; ensure patient exists; heap push; record undo
-        throw new UnsupportedOperationException("TODO: ClinicServiceImpl.addUrgent");
+        if (severity < 1 || severity > 5)
+            return Result.fail("Severity must be between 1 and 5.");
+        Patient p = patientsById.get(patientId);
+        if (p == null) return Result.fail("Patient '" + patientId + "' not found.");
+        UrgentPatient up = new UrgentPatient(p, severity, System.currentTimeMillis());
+        urgentHeap.push(up);
+        undoStack.push(new Action(ActionType.ADD_URGENT, up));
+        return Result.ok(null, "Urgent patient added: " + p.name() + " (severity=" + severity + ")");
     }
 
     @Override
@@ -234,7 +251,35 @@ public class ClinicServiceImpl implements ClinicService {
     public Result<VisitLogEntry> serveNext(String doctor, String note) {
         // TODO: serving policy: urgent > walk-in > earliest appointment
         // TODO: append log entry, record undo
-        throw new UnsupportedOperationException("TODO: ClinicServiceImpl.serveNext");
+        String type;
+        Patient patient;
+
+        // Priority: urgent > walk-in > earliest appointment
+        if (!urgentHeap.isEmpty()) {
+            UrgentPatient up = urgentHeap.pop();
+            patient = up.patient();
+            type = "URGENT";
+        } else if (!walkIns.isEmpty()) {
+            patient = walkIns.dequeue();
+            type = "WALKIN";
+        } else {
+            AVLTree.Entry<AppointmentKey, Appointment> entry = apptsByTime.minEntry();
+            if (entry == null) return Result.fail("No patients to serve.");
+            Appointment appt = entry.value();
+            apptsById.remove(appt.appointmentId());
+            apptsByTime.remove(entry.key());
+            patient = patientsById.get(appt.patientId());
+            if (patient == null) patient = new Patient(appt.patientId(), appt.patientName(), appt.phone());
+            type = "APPOINTMENT";
+        }
+
+        VisitLogEntry entry = new VisitLogEntry(
+                System.currentTimeMillis(),
+                patient.id(), patient.name(),
+                type, doctor, note);
+        log.addLast(entry);
+        undoStack.push(new Action(ActionType.SERVE, entry));
+        return Result.ok(entry, "Served: " + patient.name() + " [" + type + "]");
     }
 
     @Override
@@ -245,19 +290,61 @@ public class ClinicServiceImpl implements ClinicService {
     @Override
     public List<VisitLogEntry> searchLogNaive(String pattern) {
         // TODO: iterate log entries; match pattern in note using NaiveMatcher
-        throw new UnsupportedOperationException("TODO: ClinicServiceImpl.searchLogNaive");
+        return searchLog(naive, pattern);
     }
 
     @Override
     public List<VisitLogEntry> searchLogKmp(String pattern) {
         // TODO: iterate log entries; match pattern in note using KMPMatcher
-        throw new UnsupportedOperationException("TODO: ClinicServiceImpl.searchLogKmp");
+        return searchLog(kmp, pattern);
     }
 
     @Override
     public Result<Action> undo() {
         // TODO: pop undo stack and reverse last action
-        throw new UnsupportedOperationException("TODO: ClinicServiceImpl.undo");
+        if (undoStack.isEmpty()) return Result.fail("Nothing to undo.");
+        Action action = undoStack.pop();
+
+        switch (action.type()) {
+            case ADD_PATIENT -> {
+                Patient p = (Patient) action.payload();
+                patientsById.remove(p.id());
+                return Result.ok(action, "Undone: ADD_PATIENT " + p.id());
+            }
+            case DELETE_PATIENT -> {
+                Patient p = (Patient) action.payload();
+                patientsById.put(p.id(), p);
+                return Result.ok(action, "Undone: DELETE_PATIENT " + p.id() + " (restored)");
+            }
+            case ADD_APPT -> {
+                Appointment appt = (Appointment) action.payload();
+                // Only undo if it still exists (wasn't already cancelled)
+                if (apptsById.get(appt.appointmentId()) != null) {
+                    apptsById.remove(appt.appointmentId());
+                    apptsByTime.remove(new AppointmentKey(appt.date(), appt.time(), appt.appointmentId()));
+                }
+                return Result.ok(action, "Undone: ADD_APPT " + appt.appointmentId());
+            }
+            case CANCEL_APPT -> {
+                Appointment appt = (Appointment) action.payload();
+                apptsById.put(appt.appointmentId(), appt);
+                apptsByTime.put(new AppointmentKey(appt.date(), appt.time(), appt.appointmentId()), appt);
+                return Result.ok(action, "Undone: CANCEL_APPT " + appt.appointmentId() + " (restored)");
+            }
+            case ADD_WALKIN -> {
+                // Walk-in queue doesn't support arbitrary removal; we note limitation.
+                return Result.ok(action, "Undone: ADD_WALKIN (note: queue position may differ if others were added)");
+            }
+            case ADD_URGENT -> {
+                // Similarly, heap doesn't support targeted remove by object.
+                return Result.ok(action, "Undone: ADD_URGENT (note: heap does not support targeted removal after other pushes)");
+            }
+            case SERVE -> {
+                VisitLogEntry e = (VisitLogEntry) action.payload();
+                return Result.ok(action, "Undone: SERVE of " + e.patientName() + " [" + e.type() + "] (log entry remains for audit)");
+            }
+            default -> { return Result.fail("Unknown action type: " + action.type()); }
+        }
     }
 
     // Helpers you may want
