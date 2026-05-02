@@ -63,6 +63,7 @@ public class ClinicServiceImpl implements ClinicService {
         }
         Patient patient = new Patient(id, name, phone);
         patientsById.put(id, patient);
+        undo.push(new Action(ActionType.ADD_PATIENT, patient));
 
         return Result.ok(null, "Patient added");
     }
@@ -94,6 +95,7 @@ public class ClinicServiceImpl implements ClinicService {
         if (removed == null){
             return Result.fail("Patient not found");
         }
+        undo.push(new Action(ActionType.DELETE_PATIENT, removed));
         return Result.ok(null, "Patient deleted");
     }
 
@@ -134,6 +136,7 @@ public class ClinicServiceImpl implements ClinicService {
 
         apptsById.put(appointmentId, appointment);
         apptsByTime.put(key, appointment);
+        undo.push(new Action(ActionType.ADD_APPT, appointment));
 
         return Result.ok(appointmentId, "Appointment added");
     }
@@ -159,6 +162,7 @@ public class ClinicServiceImpl implements ClinicService {
         );
 
         apptsByTime.remove(key);
+        undo.push(new Action(ActionType.CANCEL_APPT, appt));
 
         return Result.ok(null, "Appointment cancelled");
     }
@@ -212,6 +216,7 @@ public class ClinicServiceImpl implements ClinicService {
         }
 
         walkIns.enqueue(patient);
+        undo.push(new Action(ActionType.ADD_WALKIN, patient));
 
         return Result.ok(null, "Walk_in added");
     }
