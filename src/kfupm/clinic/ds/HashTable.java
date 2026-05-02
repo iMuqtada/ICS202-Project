@@ -20,7 +20,7 @@ public class HashTable<K, V> {
     private int size;
     
     public HashTable() {
-        table = new Node[16];
+        table = (Node[]) new HashTable.Node[16];
         size = 0;
     }
     private int hash(K key){
