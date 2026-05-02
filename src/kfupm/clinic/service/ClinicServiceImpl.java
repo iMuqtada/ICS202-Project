@@ -304,66 +304,77 @@ public class ClinicServiceImpl implements ClinicService {
         return searchLog(kmp, pattern);
     }
 
-    @Override
-    public Result<Action> undo() {
-        // TODO: pop undo stack and reverse last action
-        if (undo.isEmpty()) return Result.fail("Nothing to undo.");
-        Action action = undo.pop();
+  
+@Override
+public Result<Action> undo() {
+    if (undo.isEmpty()) {
+        return Result.fail("Nothing to undo.");
+    }
 
-        switch (action.type()) {
-            case ADD_PATIENT -> {
-                Patient p = (Patient) action.payload();
-                patientsById.remove(p.id());
-                return Result.ok(action, "Undone: ADD_PATIENT " + p.id());
-            }
-            case DELETE_PATIENT -> {
-                Patient p = (Patient) action.payload();
-                patientsById.put(p.id(), p);
-                return Result.ok(action, "Undone: DELETE_PATIENT " + p.id() + " (restored)");
-            }
-            case ADD_APPT -> {
-                Appointment appt = (Appointment) action.payload();
-                // Only undo if it still exists (wasn't already cancelled)
-                if (apptsById.get(appt.appointmentId()) != null) {
-                    apptsById.remove(appt.appointmentId());
-                    apptsByTime.remove(new AppointmentKey(appt.date(), appt.time(), appt.appointmentId()));
-                }
-                return Result.ok(action, "Undone: ADD_APPT " + appt.appointmentId());
-            }
-            case CANCEL_APPT -> {
-                Appointment appt = (Appointment) action.payload();
-                apptsById.put(appt.appointmentId(), appt);
-                apptsByTime.put(new AppointmentKey(appt.date(), appt.time(), appt.appointmentId()), appt);
-                return Result.ok(action, "Undone: CANCEL_APPT " + appt.appointmentId() + " (restored)");
-            }
-            case ADD_WALKIN -> {
-                Patient p = (Patient) action.payload();
-                walkIns.remove(p);
-                return Result.ok(action, "Undone: ADD_WALKIN " + p.id());
-            }
-            case ADD_URGENT -> {
-                UrgentPatient up = (UrgentPatient) action.payload();
-                urgentHeap.remove(up);
-                return Result.ok(action, "Undone: ADD_URGENT " + up.patient().id());
-            }
-            case SERVE -> {
-                ServeUndoData data = (ServeUndoData) action.payload();
+    Action action = undo.pop();
 
-                log.removeLast();
+    switch (action.type()) {
 
-                if (data.type().equals("URGENT")) {
-                        urgentHeap.push(data.urgentPatient());
-                } else if (data.type().equals("WALKIN")) {
-                         walkIns.enqueueFront(data.patient());
-                } else if (data.type().equals("APPOINTMENT")) {
-                         Appointment appt = data.appointment();
-                          apptsById.put(appt.appointmentId(), appt);
-                          apptsByTime.put(new AppointmentKey(appt.date(), appt.time(), appt.appointmentId()), appt);
-                 }
+        case ADD_PATIENT -> {
+            Patient p = (Patient) action.payload();
+            patientsById.remove(p.id());
+            return Result.ok(action, "Undone: ADD_PATIENT " + p.id());
+        }
 
-                return Result.ok(action, "Undone: SERVE " + data.patient().id());
+        case DELETE_PATIENT -> {
+            Patient p = (Patient) action.payload();
+            patientsById.put(p.id(), p);
+            return Result.ok(action, "Undone: DELETE_PATIENT " + p.id());
+        }
+
+        case ADD_APPT -> {
+            Appointment appt = (Appointment) action.payload();
+
+            apptsById.remove(appt.appointmentId());
+
+            AppointmentKey key = new AppointmentKey(
+                    appt.date(),
+                    appt.time(),
+                    appt.appointmentId()
+            );
+
+            apptsByTime.remove(key);
+
+            return Result.ok(action, "Undone: ADD_APPT " + appt.appointmentId());
+        }
+
+        case CANCEL_APPT -> {
+            Appointment appt = (Appointment) action.payload();
+
+            AppointmentKey key = new AppointmentKey(
+                    appt.date(),
+                    appt.time(),
+                    appt.appointmentId()
+            );
+
+            apptsById.put(appt.appointmentId(), appt);
+            apptsByTime.put(key, appt);
+
+            return Result.ok(action, "Undone: CANCEL_APPT " + appt.appointmentId());
+        }
+
+        case ADD_WALKIN -> {
+            return Result.ok(action, "Undo for ADD_WALKIN is not fully supported.");
+        }
+
+        case ADD_URGENT -> {
+            return Result.ok(action, "Undo for ADD_URGENT is not fully supported.");
+        }
+
+        case SERVE -> {
+            return Result.ok(action, "Undo for SERVE is not fully supported.");
+        }
+
+        default -> {
+            return Result.fail("Unsupported undo action.");
         }
     }
+}
 
     // Helpers you may want
     private String newAppointmentId() {
