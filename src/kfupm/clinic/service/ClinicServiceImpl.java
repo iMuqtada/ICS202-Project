@@ -155,7 +155,7 @@ public class ClinicServiceImpl implements ClinicService {
         AppointmentKey key = new AppointmentKey(
             appt.date(),
             appt.time(),
-            appt.id()
+            appt.appointmentId()
         );
 
         apptsByTime.remove(key);
