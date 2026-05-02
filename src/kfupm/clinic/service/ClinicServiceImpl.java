@@ -59,7 +59,7 @@ public class ClinicServiceImpl implements ClinicService {
         Patient existing = patientsById.get(id);
 
         if (existing != null){
-            return Result.fail("Patient already exists")
+            return Result.fail("Patient already exists");
         }
         Patient patient = new Patient(id, name, phone);
         patientsById.put(id, patient);
