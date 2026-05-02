@@ -351,4 +351,15 @@ public class ClinicServiceImpl implements ClinicService {
     private String newAppointmentId() {
         return "A" + (nextApptId++);
     }
+    private List<VisitLogEntry> searchLog(StringMatcher matcher, String pattern) {
+    List<VisitLogEntry> result = new ArrayList<>();
+
+    for (VisitLogEntry entry : log.toList()) {
+        if (matcher.contains(entry.note(), pattern)) {
+            result.add(entry);
+        }
+    }
+
+    return result;
+}
 }
