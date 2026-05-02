@@ -355,7 +355,7 @@ public class ClinicServiceImpl implements ClinicService {
     List<VisitLogEntry> result = new ArrayList<>();
 
     for (VisitLogEntry entry : log.toList()) {
-        if (matcher.contains(entry.note(), pattern)) {
+        if (matcher.contains(entry.notes(), pattern)) {
             result.add(entry);
         }
     }
